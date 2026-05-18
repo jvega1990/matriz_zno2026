@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>MATRIZ DE EQUIPOS DE IMPRESIÓN ZNO</title>
+
+<link rel="stylesheet" href="style.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+
+</head>
+
+<body>
+
+<div class="header">
+    MATRIZ DE EQUIPOS DE IMPRESIÓN ZNO 2026
+</div>
+
+<div class="toolbar">
+
+    <input type="text" id="buscar" placeholder="Buscar información...">
+
+    <button onclick="agregarFila()">
+        Agregar Registro
+    </button>
+
+    <button class="btn-guardar" onclick="guardarEnGitHub()">
+        Guardar
+    </button>
+
+    <button onclick="exportarExcel()">
+        Exportar Excel
+    </button>
+
+    <button class="btn-danger" onclick="eliminarFilaSeleccionada()">
+        Eliminar Registro
+    </button>
+
+    <button class="btn-danger" onclick="limpiarTodo()">
+        Limpiar Todo
+    </button>
+
+</div>
+
+<div id="excelTable"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+
+let data = [];
+
+
+// ===============================
+// CARGAR EXCEL AUTOMÁTICAMENTE
+// ===============================
+async function cargarExcelAutomatico() {
+
+    const url = 'https://raw.githubusercontent.com/jvega1990/matriz_zno2026/main/znomatriz2026.xlsx';
+
+    try {
+
+        const respuesta = await fetch(url);
+
+        const arrayBuffer = await respuesta.arrayBuffer();
+
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+        const hoja = workbook.Sheets[workbook.SheetNames[0]];
+
+        const datos = XLSX.utils.sheet_to_json(hoja, { header: 1 });
+
+        // ELIMINAR ENCABEZADO
+        datos.shift();
+
+        data = datos;
+
+        hot.loadData(data);
+
+        console.log('Excel cargado correctamente');
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert('Error cargando Excel');
+
+    }
+
+}
+
+
+// ===============================
+// TABLA
+// ===============================
+const container = document.getElementById('excelTable');
+
+const hot = new Handsontable(container, {
+
+    data: data,
+
+    rowHeaders: true,
+
+    colHeaders: [
+        'N°',
+        'ZONA EP PETROECUADOR',
+        'CIUDAD',
+        'UBICACIÓN (CENTRO OPERATIVO / EDIFICIO)',
+        'PISO',
+        'ÁREA',
+        'TIPO DE EQUIPO',
+        'MARCA',
+        'MODELO DE EQUIPO',
+        'DIRECCIÓN IP',
+        'SERIE',
+        'ESTADO'
+    ],
+
+    columns: [
+        {type:'numeric'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {type:'text'},
+        {
+            type:'dropdown',
+            source:['Instalado','Entregado','Backup']
+        }
+    ],
+
+    width:'100%',
+    height:'100%',
+
+    stretchH:'all',
+
+    manualRowResize:true,
+    manualColumnResize:true,
+
+    filters:true,
+    dropdownMenu:true,
+    contextMenu:true,
+
+    licenseKey:'non-commercial-and-evaluation'
+
+});
+
+
+// INICIAR CARGA
+cargarExcelAutomatico();
+
+
+// ===============================
+// AGREGAR FILA
+// ===============================
+function agregarFila(){
+
+    hot.alter('insert_row');
+
+}
+
+
+// ===============================
+// EXPORTAR EXCEL
+// ===============================
+function exportarExcel(){
+
+    const datos = hot.getData();
+
+    const encabezados = [[
+        'N°',
+        'ZONA EP PETROECUADOR',
+        'CIUDAD',
+        'UBICACIÓN (CENTRO OPERATIVO / EDIFICIO)',
+        'PISO',
+        'ÁREA',
+        'TIPO DE EQUIPO',
+        'MARCA',
+        'MODELO DE EQUIPO',
+        'DIRECCIÓN IP',
+        'SERIE',
+        'ESTADO'
+    ]];
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+        ...encabezados,
+        ...datos
+    ]);
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventario');
+
+    XLSX.writeFile(workbook, 'Inventario_EP_PETROECUADOR.xlsx');
+
+}
+
+
+// ===============================
+// GUARDAR EN GITHUB
+// ===============================
+async function guardarEnGitHub(){
+
+    try{
+
+        const datos = hot.getData();
+
+        const encabezados = [[
+            'N°',
+            'ZONA EP PETROECUADOR',
+            'CIUDAD',
+            'UBICACIÓN (CENTRO OPERATIVO / EDIFICIO)',
+            'PISO',
+            'ÁREA',
+            'TIPO DE EQUIPO',
+            'MARCA',
+            'MODELO DE EQUIPO',
+            'DIRECCIÓN IP',
+            'SERIE',
+            'ESTADO'
+        ]];
+
+        // CREAR EXCEL
+        const worksheet = XLSX.utils.aoa_to_sheet([
+            ...encabezados,
+            ...datos
+        ]);
+
+        const workbook = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventario');
+
+        // CONVERTIR A BASE64
+        const excelBase64 = XLSX.write(workbook, {
+            bookType:'xlsx',
+            type:'base64'
+        });
+
+        // TOKEN GITHUB
+        const token = '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';
+
+        // URL API
+        const apiUrl = 'https://api.github.com/repos/jvega1990/matriz_zno2026/contents/znomatriz2026.xlsx';
+
+        // OBTENER SHA ACTUAL
+        const obtenerArchivo = await fetch(apiUrl, {
+
+            method:'GET',
+
+            headers:{
+                'Authorization': `Bearer ${token}`,
+                'Accept':'application/vnd.github+json'
+            }
+
+        });
+
+        if(!obtenerArchivo.ok){
+
+            const errorTexto = await obtenerArchivo.text();
+
+            console.error(errorTexto);
+
+            alert('Error obteniendo archivo');
+
+            return;
+
+        }
+
+        const archivoData = await obtenerArchivo.json();
+
+        // ACTUALIZAR ARCHIVO
+        const actualizar = await fetch(apiUrl, {
+
+            method:'PUT',
+
+            headers:{
+                'Authorization': `Bearer ${token}`,
+                'Content-Type':'application/json',
+                'Accept':'application/vnd.github+json'
+            },
+
+            body: JSON.stringify({
+
+                message:'Actualización automática desde sistema web',
+
+                content: excelBase64,
+
+                sha: archivoData.sha
+
+            })
+
+        });
+
+        if(actualizar.ok){
+
+            alert('Archivo guardado correctamente en GitHub');
+
+        }else{
+
+            const errorGuardar = await actualizar.text();
+
+            console.error(errorGuardar);
+
+            alert('Error al guardar en GitHub');
+
+        }
+
+    }catch(error){
+
+        console.error(error);
+
+        alert('Error general al guardar');
+
+    }
+
+}
+
+
+// ===============================
+// ELIMINAR FILA
+// ===============================
+function eliminarFilaSeleccionada(){
+
+    const seleccion = hot.getSelectedLast();
+
+    if(!seleccion){
+
+        alert('Seleccione un registro');
+
+        return;
+
+    }
+
+    const fila = seleccion[0];
+
+    if(confirm('¿Desea eliminar este registro?')){
+
+        data.splice(fila, 1);
+
+        hot.loadData(data);
+
+        alert('Registro eliminado correctamente');
+
+    }
+
+}
+
+
+// ===============================
+// LIMPIAR TODO
+// ===============================
+function limpiarTodo(){
+
+    if(confirm('¿Seguro que desea eliminar TODOS los registros?')){
+
+        data = [];
+
+        hot.loadData(data);
+
+        alert('Todos los registros fueron eliminados');
+
+    }
+
+}
+
+
+// ===============================
+// BUSCADOR
+// ===============================
+const buscar = document.getElementById('buscar');
+
+buscar.addEventListener('keyup', function(){
+
+    const valor = this.value.toLowerCase();
+
+    if(valor === ''){
+
+        hot.loadData(data);
+
+        return;
+
+    }
+
+    const filas = [];
+
+    data.forEach(fila => {
+
+        const contiene = fila.some(celda =>
+            String(celda).toLowerCase().includes(valor)
+        );
+
+        if(contiene){
+
+            filas.push(fila);
+
+        }
+
+    });
+
+    hot.loadData(filas);
+
+});
+
+</script>
+
+</body>
+</html>
